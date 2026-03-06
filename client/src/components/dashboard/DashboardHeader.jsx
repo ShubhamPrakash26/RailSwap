@@ -1,4 +1,5 @@
 import { Bell, Plus } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 export default function DashboardHeader() {
   return (
@@ -24,6 +25,10 @@ export default function DashboardHeader() {
           <Plus size={16} />
           New Request
         </button>
+
+        <Link to="/submit-review" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-lg">
+          Write Review
+        </Link>
 
       </div>
     </header>

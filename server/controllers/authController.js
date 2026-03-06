@@ -61,7 +61,7 @@ exports.login = (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: req.user._id },
+    { id: req.user._id, isAdmin: req.user.isAdmin },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -72,6 +72,7 @@ exports.login = (req, res) => {
       id: req.user._id,
       email: req.user.email,
       username: req.user.username,
+      isAdmin: req.user.isAdmin || false,
     },
   });
 };

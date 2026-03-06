@@ -27,7 +27,13 @@ export default function Login() {
     try {
       const res = await API.post("/auth/login", form);
       localStorage.setItem("token", res.data.token);
-      navigate("/dashboard");
+      // store basic user info so UI can check admin
+      localStorage.setItem("user", JSON.stringify(res.data.user || {}));
+      if (res.data.user && res.data.user.isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       alert(
         error.response?.data?.message ||

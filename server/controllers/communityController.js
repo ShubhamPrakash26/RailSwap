@@ -64,18 +64,34 @@ exports.updateIssue = async (req, res) => {
   try {
     const updates = {};
     if (req.body.status) {
-      const s = String(req.body.status).toLowerCase();
-      if (!['open', 'resolved'].includes(s)) return res.status(400).json({ message: 'invalid status' });
+      const raw = String(req.body.status).trim();
+      // Accept human labels or normalized values
+      const map = {
+        'resolved': 'resolved',
+        'open': 'open',
+        'under process': 'under_process',
+        'under_process': 'under_process',
+        'in_progress': 'under_process',
+        'un resolved': 'unresolved',
+        'unresolved': 'unresolved'
+      };
+      const key = raw.toLowerCase();
+      const s = map[key];
+      if (!s) return res.status(400).json({ message: 'invalid status' });
       updates.status = s;
     }
     if (req.body.resolution) {
       if (String(req.body.resolution).trim().length < 3) return res.status(400).json({ message: 'resolution too short' });
       updates.resolution = String(req.body.resolution).trim();
     }
-    if (updates.status === 'resolved') updates.resolvedAt = new Date();
-
-    // attach who resolved
-    if (req.user && updates.status === 'resolved') updates.resolvedBy = req.user._id;
+    if (updates.status === 'resolved') {
+      updates.resolvedAt = new Date();
+      if (req.user) updates.resolvedBy = req.user._id;
+    } else {
+      // clear resolved metadata when status is not resolved
+      updates.resolvedAt = null;
+      updates.resolvedBy = null;
+    }
 
     const issue = await Issue.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true }).lean();
     if (!issue) return res.status(404).json({ message: 'Not found' });

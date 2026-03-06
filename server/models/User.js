@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true },
   password: String,
   isVerified: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
   verificationCode: String,
 });
 
