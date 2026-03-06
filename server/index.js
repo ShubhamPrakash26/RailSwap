@@ -5,9 +5,12 @@ require("dotenv").config();
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
+const dataRoutes = require("./routes/data");
+const routeRoutes = require("./routes/routes");
+const communityRoutes = require("./routes/community");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Connect to database
 connectDB();
@@ -22,6 +25,9 @@ require("./passport")(passport);
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/data", dataRoutes);
+app.use("/api/routes", routeRoutes);
+app.use("/api/community", communityRoutes);
 
 // Test route
 app.get("/", (req, res) => {
