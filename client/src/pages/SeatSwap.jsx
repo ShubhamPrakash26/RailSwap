@@ -1,6 +1,7 @@
 import DashboardLayout from "../components/layout/DashboardLayout";
 import PNRCard from "../components/seatswap/PNRCard";
 import SwapList from "../components/seatswap/SwapList";
+import JourneyList from "../components/seatswap/JourneyList";
 
 export default function SeatSwap() {
   return (
@@ -22,6 +23,7 @@ export default function SeatSwap() {
         {/* LEFT PANEL */}
         <div className="lg:col-span-4 space-y-6">
           <PNRCard />
+          <JourneyList />
         </div>
 
         {/* RIGHT PANEL */}

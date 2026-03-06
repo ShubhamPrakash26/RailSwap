@@ -1,24 +1,29 @@
 import SwapRequestCard from "./SwapRequestCard";
+import { useEffect, useState } from 'react';
+import API from '../../lib/api';
 
 export default function SwapList() {
+  const [swaps, setSwaps] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [trainFilter, setTrainFilter] = useState('');
+  const [seatTypeFilter, setSeatTypeFilter] = useState('');
 
-  const swaps = [
-    {
-      name: "Rahul S.",
-      verified: true,
-      wants: "RAC 32",
-      offer: "Side Lower, B2",
-      time: "5 mins ago",
-      distance: "2 coaches away"
-    },
-    {
-      name: "Ananya M.",
-      wants: "RAC 27",
-      offer: "Upper Berth, B2",
-      time: "12 mins ago",
-      distance: "Same coach"
-    }
-  ];
+  const fetch = async () => {
+    setLoading(true);
+    try {
+      const q = {};
+      if (trainFilter) q.train = trainFilter;
+      if (seatTypeFilter) q.seatType = seatTypeFilter;
+      const params = new URLSearchParams(q).toString();
+      const res = await API.get('/swap/requests' + (params ? `?${params}` : ''));
+      setSwaps(res.data.items || []);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load swap requests');
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetch(); }, []);
 
   return (
     <div>
@@ -29,24 +34,22 @@ export default function SwapList() {
 
         <div className="flex gap-2">
 
-          <select className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-            <option>All Seat Types</option>
-            <option>Lower Berth</option>
-            <option>Side Lower</option>
-            <option>Upper Berth</option>
+          <select value={seatTypeFilter} onChange={e=>setSeatTypeFilter(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+            <option value="">All Seat Types</option>
+            <option value="Lower">Lower Berth</option>
+            <option value="Side Lower">Side Lower</option>
+            <option value="Upper">Upper Berth</option>
+            <option value="RAC">RAC</option>
           </select>
 
-          <select className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-            <option>All Coaches</option>
-            <option>B1</option>
-            <option>B2</option>
-            <option>B3</option>
-          </select>
+          <input value={trainFilter} onChange={e=>setTrainFilter(e.target.value)} placeholder="Train number" className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+
+          <button onClick={fetch} className="bg-slate-700 px-3 rounded">Apply</button>
 
         </div>
 
         <span className="text-sm text-slate-400">
-          Showing 12 results
+          {loading ? 'Loading...' : `${swaps.length} results`}
         </span>
 
       </div>
@@ -55,9 +58,13 @@ export default function SwapList() {
 
       <div className="space-y-4">
 
-        {swaps.map((swap, index) => (
-          <SwapRequestCard key={index} {...swap} />
+        {swaps.map((swap) => (
+          <SwapRequestCard key={swap._id} swap={swap} onChange={fetch} />
         ))}
+
+        {!loading && swaps.length === 0 && (
+          <div className="text-sm text-slate-400">No swap requests found.</div>
+        )}
 
       </div>
 
