@@ -1,5 +1,5 @@
 import DashboardLayout from "../components/layout/DashboardLayout";
-import { useState } from 'react';
+import { useState } from "react";
 
 import CommunitySelector from "../components/community/CommunitySelector";
 import RaiseIssueForm from "../components/community/RaiseIssueForm";
@@ -13,8 +13,7 @@ export default function Community() {
 
   return (
     <DashboardLayout>
-
-      <div className="space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
 
         <CommunitySelector onSelect={setSelected} />
 
@@ -23,17 +22,12 @@ export default function Community() {
         <IssueList selected={selected} />
 
         <div className="grid md:grid-cols-3 gap-6">
-
           <StationTips />
-
           <SafetyRatings />
-
           <FoodRecommendations />
-
         </div>
 
       </div>
-
     </DashboardLayout>
   );
 }

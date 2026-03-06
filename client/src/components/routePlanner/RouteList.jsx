@@ -1,33 +1,14 @@
 import RouteCard from "./RouteCard";
 
-export default function RouteList() {
-
-  const routes = [
-    {
-      title: "New Delhi → Varanasi via Lucknow",
-      duration: "12h 45m • 1 Transfer",
-      price: "₹1450",
-      recommended: true
-    },
-    {
-      title: "New Delhi → Varanasi via Kanpur",
-      duration: "11h 20m • 1 Transfer",
-      price: "₹1820"
-    },
-    {
-      title: "New Delhi → Varanasi via Allahabad",
-      duration: "14h 10m • 1 Transfer",
-      price: "₹1120"
-    }
-  ];
+export default function RouteList({ routes = [], loading = false }) {
+  if (loading) return <div className="text-slate-400">Searching for routes...</div>;
+  if (!routes || !routes.length) return <div className="text-slate-400">No routes found.</div>;
 
   return (
     <div className="space-y-6">
-
       {routes.map((route, index) => (
-        <RouteCard key={index} {...route} />
+        <RouteCard key={index} route={route} />
       ))}
-
     </div>
   );
 }

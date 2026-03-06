@@ -7,7 +7,7 @@ export default function SafetyRatings() {
         Safety Rating
       </h3>
 
-      <p className="text-2xl font-bold text-emerald-400">
+      <p className="text-2xl font-bold text-blue-400">
         4.2 / 5
       </p>
 
