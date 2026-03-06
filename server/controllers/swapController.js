@@ -27,10 +27,22 @@ exports.createJourney = async (req, res) => {
 
 exports.listJourneys = async (req, res) => {
   try {
-    const { pnr, mine } = req.query;
+    const { pnr, mine, all } = req.query;
     const q = {};
     if (pnr) q.pnr = String(pnr).trim();
-    if (mine && req.user) q.user = req.user._id;
+
+    // By default, return only the authenticated user's journeys when authenticated.
+    // If `all=true` is provided, allow returning all journeys (use with caution).
+    if (req.user) {
+      if (!(all === 'true' || all === '1')) {
+        q.user = req.user._id;
+      }
+    } else {
+      // If not authenticated and `mine` was requested, reject; otherwise return no journeys to anonymous users.
+      if (mine) return res.status(401).json({ message: 'Unauthorized' });
+      // anonymous users: do not expose journeys
+      return res.json({ items: [] });
+    }
 
     const items = await Journey.find(q).sort({ createdAt: -1 }).lean();
     res.json({ items });
@@ -76,7 +88,14 @@ exports.listSwapRequests = async (req, res) => {
     if (coach) q.coach = String(coach).trim();
     if (excludeMine && req.user) q.createdBy = { $ne: req.user._id };
 
-    const items = await SwapRequest.find(q).sort({ createdAt: -1 }).limit(200).populate('journey').lean();
+    let items = await SwapRequest.find(q).sort({ createdAt: -1 }).limit(200).populate('journey').populate({ path: 'createdBy', select: 'name email' }).lean();
+
+    // attach convenient createdByName for client display
+    items = items.map(it => ({
+      ...it,
+      createdByName: it.createdBy ? (it.createdBy.name || (it.createdBy.email ? it.createdBy.email.split('@')[0] : 'User')) : null
+    }));
+
     res.json({ items });
   } catch (err) {
     console.error(err);
@@ -156,7 +175,41 @@ exports.acceptSwap = async (req, res) => {
     await swap.save();
     await mySwap.save();
 
-    res.json({ swap, mySwap });
+    // Update journey seat/coach ownership details so both accounts reflect the swap
+    try {
+      const requesterJourney = await Journey.findById(swap.journey);
+      const acceptorJourney = await Journey.findById(myJourney._id);
+      if (requesterJourney && acceptorJourney) {
+        // Swap coach, seat and seatType between journeys
+        const tmp = { coach: requesterJourney.coach, seat: requesterJourney.seat, seatType: requesterJourney.seatType };
+        requesterJourney.coach = acceptorJourney.coach;
+        requesterJourney.seat = acceptorJourney.seat;
+        requesterJourney.seatType = acceptorJourney.seatType;
+
+        acceptorJourney.coach = tmp.coach;
+        acceptorJourney.seat = tmp.seat;
+        acceptorJourney.seatType = tmp.seatType;
+
+        await requesterJourney.save();
+        await acceptorJourney.save();
+      }
+    } catch (e) {
+      console.error('Failed to update journeys after swap pairing', e);
+    }
+
+    // Return swap objects and (fresh) journeys so client can reflect changes immediately
+    const updatedRequesterJourney = await Journey.findById(swap.journey).lean();
+    const updatedAcceptorJourney = await Journey.findById(myJourney._id).lean();
+
+    // Broadcast via SSE to connected clients so both users see updated journeys in real-time
+    try {
+      const { sendEvent } = require('../utils/sse');
+      sendEvent('swapAccepted', { updatedRequesterJourney, updatedAcceptorJourney });
+    } catch (e) {
+      console.error('SSE broadcast failed', e);
+    }
+
+    res.json({ swap, mySwap, updatedRequesterJourney, updatedAcceptorJourney });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to accept swap' });

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "faq_rac",
+    "question": "What does RAC mean in Indian Railways?",
+    "answer": "RAC stands for Reservation Against Cancellation. A RAC ticket allows the passenger to travel even if a berth is not allotted; usually two RAC passengers share a berth. If cancellations happen before chart preparation, RAC may be upgraded to a confirmed berth.",
+    "keywords": ["rac","reservation against cancellation","what is rac","rac meaning"]
+  },
+  {
+    "id": "faq_refund",
+    "question": "How do I get a refund for a cancelled ticket?",
+    "answer": "Refunds depend on how and when the ticket was cancelled. For e-tickets, refund is processed automatically to the original payment method after cancellation and any applicable charges are deducted. For more details see the IRCTC refund rules on partial/full cancellations and charting time.",
+    "keywords": ["refund","cancelled ticket","how to get refund","ticket refund"]
+  },
+  {
+    "id": "faq_tatkal",
+    "question": "What is Tatkal booking and how does it work?",
+    "answer": "Tatkal is a scheme for booking tickets at short notice. Tatkal bookings open a day in advance (at specified hours) and have higher charges. Tatkal tickets are subject to availability and different cancellation/refund rules than regular tickets.",
+    "keywords": ["tatkal","tatkal booking","what is tatkal"]
+  },
+  {
+    "id": "faq_chart",
+    "question": "When is the final reservation chart prepared?",
+    "answer": "The reservation chart is normally prepared a few hours before the train departs (chart preparation time varies). After charting, tickets move from RAC/waitlist to confirmed/denied based on cancellations and availability.",
+    "keywords": ["chart","chart preparation","reservation chart","when is chart prepared"]
+  },
+  {
+    "id": "faq_pnr",
+    "question": "How can I check my PNR status?",
+    "answer": "You can check PNR status on the IRCTC website, official mobile app, or via SMS services by providing your 10-digit PNR number. Many third-party apps and this site also provide PNR checking functionality.",
+    "keywords": ["pnr","pnr status","check pnr"]
+  },
+  {
+    "id": "faq_waitlist",
+    "question": "What happens to waitlisted tickets?",
+    "answer": "Waitlisted tickets may get confirmed if cancellations occur before charting. If not confirmed by chart preparation, the ticket is automatically canceled and a refund (minus applicable charges) is processed.",
+    "keywords": ["waitlist","waitlisted","wl","what happens to waitlist"]
+  },
+  {
+    "id": "faq_id",
+    "question": "What ID proof is required during train travel?",
+    "answer": "Passengers with confirmed or RAC tickets must carry a valid government-issued photo ID (Aadhaar, Passport, Driving License, Voter ID, etc.). E-tickets require the same ID used during booking to be carried along.",
+    "keywords": ["id proof","what id","id required","identity proof"]
+  },
+  {
+    "id": "faq_cancellation_charges",
+    "question": "What are the cancellation charges?",
+    "answer": "Cancellation charges vary by ticket type (confirmed, RAC, waitlist), class, and time before departure. IRCTC publishes detailed cancellation rules; typically, higher refunds are provided if canceled earlier and lower or no refunds closer to departure.",
+    "keywords": ["cancellation charges","cancellation fee","charges for cancellation"]
+  },
+  {
+    "id": "faq_partial_refund",
+    "question": "Do I get partial refund if coach is changed or partially confirmed?",
+    "answer": "Partial refunds may apply in certain cases like superfast charges being refunded if train is diverted or coach is not available. For coach-change issues, approach the ticketing authorities; refunds depend on the specific policy applicable.",
+    "keywords": ["partial refund","coach change","partial refund coach"]
+  },
+  {
+    "id": "faq_print_eticket",
+    "question": "Do I need to print e-ticket?",
+    "answer": "Printing e-ticket is not mandatory; however, passengers must carry a valid ID used during booking. Conductor may ask for e-ticket details on the phone or a printout for verification.",
+    "keywords": ["print e-ticket","print eticket","do i need to print ticket"]
+  }
+]

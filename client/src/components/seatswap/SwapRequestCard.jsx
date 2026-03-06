@@ -9,8 +9,8 @@ export default function SwapRequestCard({ swap, onChange }) {
     setLoading(true);
     try {
       // fetch user's journeys to choose from
-      const res = await API.get('/swap/journeys');
-      const myJourneys = res.data.items || [];
+      const resJourneys = await API.get('/swap/journeys');
+      const myJourneys = resJourneys.data.items || [];
       if (!myJourneys.length) {
         alert('No saved journeys found for your account on this train. Please add one.');
         setLoading(false);
@@ -27,8 +27,12 @@ export default function SwapRequestCard({ swap, onChange }) {
         chosenId = myJourneys[i]._id;
       }
 
-      await API.post(`/swap/requests/${swap._id}/accept`, { myJourneyId: chosenId });
-      alert('Swap paired — check your swaps');
+      const resAccept = await API.post(`/swap/requests/${swap._id}/accept`, { myJourneyId: chosenId });
+      const { updatedRequesterJourney, updatedAcceptorJourney } = resAccept.data || {};
+      const { showToast } = await import('../../lib/toast');
+      showToast('Swap accepted and journeys updated');
+      // notify other components to refresh
+      try { window.dispatchEvent(new CustomEvent('swapAccepted', { detail: { updatedRequesterJourney, updatedAcceptorJourney } })); } catch (e) {}
       if (onChange) onChange();
     } catch (err) {
       console.error(err);

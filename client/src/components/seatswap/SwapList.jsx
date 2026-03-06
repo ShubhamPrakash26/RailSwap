@@ -24,6 +24,11 @@ export default function SwapList() {
   };
 
   useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    const onCreated = () => fetch();
+    window.addEventListener('swapCreated', onCreated);
+    return () => window.removeEventListener('swapCreated', onCreated);
+  }, []);
 
   return (
     <div>

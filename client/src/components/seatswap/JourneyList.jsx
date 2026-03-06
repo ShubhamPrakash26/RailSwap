@@ -1,112 +1,239 @@
-import { useEffect, useState } from 'react';
-import API from '../../lib/api';
+import React, { useState, useEffect } from "react";
+import { X, Loader2, AlertCircle } from "lucide-react";
 
-export default function JourneyList({ onCreated }) {
+export default function JourneyList() {
+  // --- STATE ---
   const [journeys, setJourneys] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [creatingOfferFor, setCreatingOfferFor] = useState(null);
-  const [desiredSeatType, setDesiredSeatType] = useState('Any');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const fetch = async () => {
-    setLoading(true);
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [desiredSeat, setDesiredSeat] = useState("");
+  const [activeJourney, setActiveJourney] = useState(null);
+
+  // --- DATA FETCHING ---
+  // fetch function in component scope so other effects can call it
+  const fetchJourneys = async () => {
     try {
-      const res = await API.get('/swap/journeys');
-      setJourneys(res.data.items || []);
+      setIsLoading(true);
+      // fetch user's journeys from server
+      const res = await (await import('../../lib/api')).default.get('/swap/journeys');
+      const items = res.data.items || [];
+      // normalize server items to local shape if necessary
+      const mapped = items.map((it) => ({
+        id: it._id || it.id,
+        pnr: it.pnr,
+        trainNo: it.trainNumber || it.trainNo,
+        coach: it.coach,
+        ticketStatus: it.seatType || it.ticketStatus,
+        berthPreference: it.berthPreference || '',
+        currentOffer: it.currentOffer || null,
+        swapStatus: it.swapStatus || 'none'
+      }));
+      setJourneys(mapped);
     } catch (err) {
-      console.error(err);
-      alert('Failed to load journeys (login required)');
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetch(); }, []);
-
-  const createOffer = async (journeyId) => {
-    const dst = prompt('Desired seat type (e.g. Lower, Upper, RAC) — leave blank for Any', 'Any');
-    if (dst === null) return;
-    try {
-      const res = await API.post('/swap/requests', { journeyId, desiredSeatType: dst });
-      alert('Offer created');
-      if (onCreated) onCreated(res.data);
-      fetch();
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || 'Failed to create offer');
+      console.error("Error fetching journeys:", err);
+      setError("Failed to load journey data.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const cancelOffer = async (swapId) => {
-    if (!confirm('Cancel this offer?')) return;
+  useEffect(() => {
+    fetchJourneys();
+  }, []);
+
+  useEffect(() => {
+    const onAccepted = (e) => {
+      // a swap was accepted that might affect journey details; re-fetch
+      try {
+        // if event provides updated journeys, update locally for speed
+        const detail = e?.detail || {};
+        if (detail.updatedRequesterJourney || detail.updatedAcceptorJourney) {
+          // re-fetch to keep consistent with server
+          fetchJourneys();
+        } else {
+          fetchJourneys();
+        }
+      } catch (err) {
+        fetchJourneys();
+      }
+    };
+    window.addEventListener('swapAccepted', onAccepted);
+    return () => window.removeEventListener('swapAccepted', onAccepted);
+  }, []);
+
+  // --- HANDLERS ---
+  const handleOpenModal = (journey) => {
+    setActiveJourney(journey);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitOffer = async () => {
+    const finalSeatPreference = desiredSeat.trim() === "" ? "Any" : desiredSeat;
+
+    if (!activeJourney) return;
+
+    // Call backend to create swap request
     try {
-      await API.post(`/swap/requests/${swapId}/cancel`);
-      alert('Cancelled');
-      fetch();
+      setIsLoading(true);
+      const API = (await import('../../lib/api')).default;
+      const payload = { journeyId: activeJourney.id, desiredSeatType: finalSeatPreference };
+      const res = await API.post('/swap/requests', payload);
+      const created = res.data;
+
+      // Update UI optimistically
+      setJourneys((prev) => 
+        prev.map((j) => 
+          j.id === activeJourney.id 
+            ? { ...j, currentOffer: finalSeatPreference, swapStatus: "searching" } 
+            : j
+        )
+      );
+
+      // Dispatch global event so lists can refresh
+      try { window.dispatchEvent(new CustomEvent('swapCreated', { detail: created })); } catch (e) {}
+
+      const { showToast } = await import('../../lib/toast');
+      showToast('Swap request created successfully');
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || 'Failed to cancel');
+      console.error('Failed to create swap request', err);
+      const { showToast } = await import('../../lib/toast');
+      showToast(err?.response?.data?.message || 'Failed to create swap request', 'error');
+    } finally {
+      setIsModalOpen(false);
+      setDesiredSeat("");
+      setActiveJourney(null);
+      setIsLoading(false);
     }
   };
+
+  const handleCancelOffer = (id) => {
+    setJourneys((prev) => 
+      prev.map((j) => 
+        j.id === id ? { ...j, currentOffer: null, swapStatus: "none" } : j
+      )
+    );
+  };
+
+  // --- RENDER HELPERS ---
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-slate-400 space-y-3">
+        <Loader2 className="animate-spin text-indigo-500" size={32} />
+        <p className="text-sm">Fetching your journeys...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-3 text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-500/20">
+        <AlertCircle size={20} />
+        <p className="text-sm">{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white">Your Saved Journeys</h3>
+    <div className="space-y-4 relative">
+      <h3 className="text-slate-400 font-medium mb-3">Your Saved Journeys</h3>
 
-      {loading && <div className="text-sm text-slate-400">Loading...</div>}
-
-      {!loading && journeys.length === 0 && (
-        <div className="text-sm text-slate-400">No saved journeys. Add one using the form.</div>
+      {journeys.length === 0 ? (
+        <div className="text-center py-8 text-slate-500 bg-slate-800/20 rounded-2xl border border-slate-700/50">
+          No upcoming journeys found.
+        </div>
+      ) : (
+        journeys.map((journey) => (
+          <div key={journey.id} className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5 hover:border-slate-600 transition-colors">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h4 className="text-white font-bold text-lg mb-1">PNR: {journey.pnr}</h4>
+                <p className="text-slate-400 text-sm">
+                  {journey.trainNo} &bull; {journey.coach} &bull; {journey.ticketStatus} &bull; {journey.berthPreference}
+                </p>
+              </div>
+              
+              {!journey.currentOffer && (
+                <button
+                  onClick={() => handleOpenModal(journey)}
+                  className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer"
+                >
+                  Create Offer
+                </button>
+              )}
+            </div>
+            
+            {journey.currentOffer && (
+              <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-700/50 text-sm">
+                <span className="text-slate-300">
+                  Offer: <span className="text-white font-medium">{journey.currentOffer}</span> &bull; Status: <span className="text-emerald-400">{journey.swapStatus}</span>
+                </span>
+                <button 
+                  onClick={() => handleCancelOffer(journey.id)}
+                  className="text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        ))
       )}
 
-      {journeys.map(j => (
-        <div key={j._id} className="bg-[#1E293B] p-4 rounded border border-slate-700">
-          <div className="flex justify-between">
-            <div>
-              <div className="font-bold text-white">PNR: {j.pnr}</div>
-              <div className="text-sm text-slate-400">{j.trainNumber} • {j.coach} • {j.seat} • {j.seatType}</div>
+      {/* CUSTOM MODAL OVERLAY */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            
+            <div className="flex justify-between items-center p-6 border-b border-slate-800">
+              <h3 className="text-xl font-semibold text-white">Create Swap Offer</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-full transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <div className="flex flex-col gap-2">
-              <button onClick={()=>createOffer(j._id)} className="bg-emerald-600 text-white px-3 py-1 rounded">Create Offer</button>
-            </div>
-          </div>
 
-          <div className="mt-3 text-sm text-slate-400">
-            {/* list my offers for this journey */}
-            <MyOffers journeyId={j._id} onCancel={cancelOffer} />
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Desired seat type for PNR {activeJourney?.pnr}
+                </label>
+                <input
+                  type="text"
+                  value={desiredSeat}
+                  onChange={(e) => setDesiredSeat(e.target.value)}
+                  placeholder="e.g. Lower, Upper, RAC (Leave blank for Any)"
+                  autoFocus
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                Leaving this blank sets your preference to "Any", which increases your chances of finding a match quickly.
+              </p>
+            </div>
+
+            <div className="p-6 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitOffer}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all cursor-pointer"
+              >
+                Confirm Offer
+              </button>
+            </div>
+
           </div>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function MyOffers({ journeyId, onCancel }) {
-  const [offers, setOffers] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetch = async () => {
-    setLoading(true);
-    try {
-      const res = await API.get(`/swap/requests/my?journeyId=${journeyId}`);
-      setOffers(res.data.items || []);
-    } catch (err) {
-      console.error(err);
-    } finally { setLoading(false); }
-  };
-
-  useEffect(()=>{ fetch(); }, [journeyId]);
-
-  if (loading) return <div className="text-sm text-slate-400">Loading offers...</div>;
-  if (!offers || offers.length === 0) return <div className="text-sm text-slate-400">No offers for this journey</div>;
-
-  return (
-    <div className="space-y-2">
-      {offers.map(o => (
-        <div key={o._id} className="flex items-center justify-between">
-          <div className="text-sm">Offer: {o.desiredSeatType} • Status: {o.status} {o.confirmed ? '(confirmed)' : ''}</div>
-          <div>
-            <button onClick={()=>onCancel(o._id)} className="text-sm px-2 py-1 bg-slate-700 rounded">Cancel</button>
-          </div>
-        </div>
-      ))}
+      )}
     </div>
   );
 }

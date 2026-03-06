@@ -9,6 +9,8 @@ const dataRoutes = require("./routes/data");
 const routeRoutes = require("./routes/routes");
 const communityRoutes = require("./routes/community");
 const swapRoutes = require('./routes/swap');
+const faqRoutes = require('./routes/faq');
+const updatesRoutes = require('./routes/updates');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +32,8 @@ app.use("/api/data", dataRoutes);
 app.use("/api/routes", routeRoutes);
 app.use("/api/community", communityRoutes);
 app.use('/api/swap', swapRoutes);
+app.use('/api/faq', faqRoutes);
+app.use('/api/updates', updatesRoutes);
 
 // Test route
 app.get("/", (req, res) => {
